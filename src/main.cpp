@@ -13,16 +13,19 @@ private:
     sf::Text promptText;
     sf::Text globalTimerText;
     sf::Text accuracyText;
+    sf::Text wpmText;
     sf::String pInput;
     sf::Clock promptClock;
     sf::Clock globalClock;
     std::string prompt = "The quick brown fox jumps over the lazy dog";
     std::string accuracyString;
     std::string accuracyStringFrac;
+    std::string wpmString;
     std::fstream input;
     std::string promptLine;
     std::ostringstream timeStream;
     std::ostringstream accuracyStream;
+    std::ostringstream wpmStream;
     bool newChallenge = true;
     bool pausePromptTimer = false;
     bool beginGlobal = true;
@@ -31,8 +34,10 @@ private:
     std::vector<float> timeStorage;
     std::vector<std::string> promptStorage;
     int promptFileLine = 1;
+    double characterCount = 0;
     static double correct;
     static double incorrect;
+    double wpmCalculation;
     float currentGlobalTime;
 
     // Detect input and handle accordingly
@@ -43,6 +48,7 @@ private:
                 window.close();
             }
             if (const auto *textEntered = event->getIf<sf::Event::TextEntered>()) {
+                characterCount++;
                 if (textEntered->unicode != '\b') {
                     pInput += textEntered->unicode;
                 }
@@ -70,6 +76,8 @@ private:
         window.draw(promptText);
         window.draw(globalTimerText);
         window.draw(accuracyText);
+        window.draw(wpmText);
+
         backgroundRectangle.setFillColor(sf::Color(101, 105, 110, 125));
         backgroundRectangle.setSize({700, 250});
         backgroundRectangle.setPosition({240, 200});
@@ -151,18 +159,25 @@ private:
             std::cout << std::fixed << std::setprecision(2) << "Accuracy: " << accuracy * 100;
             incorrect = 0;
             correct = 0;
+            wpmCalculation = (characterCount / 5) / (globalClock.getElapsedTime().asSeconds() / 60);
 
             accuracyString = "Accuracy: ";
             accuracyStream << std::fixed << std::setprecision(2) << accuracy * 100;
             accuracyString.append((accuracyStream.str()));
             accuracyString.append("%");
             accuracyText.setString(accuracyString);
+
+            wpmStream << std::fixed << std::setprecision(0) << wpmCalculation;
+            wpmString.append("WPM: ");
+            wpmString.append(wpmStream.str());
+            wpmText.setString(wpmString);
+
         }
     }
 
 public:
     Game() : window(sf::VideoMode({1200, 700}), "Typing Speed Test", sf::Style::Close, sf::State::Windowed),
-             promptText(font), globalTimerText(font), accuracyText(font) {
+             promptText(font), globalTimerText(font), accuracyText(font), wpmText(font) {
         if (!font.openFromFile("SNPro.ttf")) {
             std::cerr << "Failed to load font!" << std::endl;
             return;
@@ -189,6 +204,12 @@ public:
         accuracyText.setCharacterSize(24);
         accuracyText.setStyle(sf::Text::Bold);
         accuracyText.setString("Accuracy: %");
+
+        wpmText.setPosition({320, 380});
+        wpmText.setFillColor(sf::Color::White);
+        wpmText.setCharacterSize(24);
+        wpmText.setStyle(sf::Text::Bold);
+        wpmText.setString("WPM: ");
 
         input.open("textPrompts.txt");
         while (std::getline(input, promptLine)) {
