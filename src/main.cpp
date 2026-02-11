@@ -59,6 +59,16 @@ private:
                     }
                 }
             }
+            if (gameOver) { // TODO: Implement this if statement correctly
+                if (event->getIf<sf::Event::KeyPressed>()) {
+                    resetClocks();
+                    newChallenge = true;
+                    pausePromptTimer = false;
+                    beginGlobal = true;
+                    gameStart = true;
+                    gameOver = false;
+                }
+            }
         }
         if (!pausePromptTimer) {
             timer();
@@ -103,8 +113,7 @@ private:
         window.display();
     }
 
-    // Keep track of start -> finish for accuracy and speed
-    void timer() {
+    void resetClocks() {
         // Clocks start by default, so we must pause and reset at start of game
         if (gameStart) {
             gameStart = false;
@@ -118,7 +127,12 @@ private:
             globalClock.reset();
             globalClock.start();
         }
-        if (currentGlobalTime >= 10.00) {
+    }
+
+    // Keep track of start -> finish for accuracy and speed
+    void timer() {
+        resetClocks();
+        if (currentGlobalTime >= 5.00) {
             globalClock.stop();
             pInput.clear();
             gameEnd();
@@ -133,10 +147,6 @@ private:
             float totalTime = promptClock.getElapsedTime().asSeconds();
             timeStorage.push_back(totalTime);
             promptClock.reset();
-            for (const float i: timeStorage) {
-                std::cout << i << " ";
-            }
-            std::cout << std::endl;
         }
     }
 
@@ -148,6 +158,18 @@ private:
 
             prompt = promptStorage[promptFileLine];
             promptFileLine++;
+            if (prompt.size() > 44) {
+                int location = 44;
+                while (true) {
+                    const char space = ' ';
+                    if (prompt[location] != space) {
+                        location++;
+                    } else {
+                        prompt.replace(location,1 ,"\n");
+                        break;
+                    }
+                }
+            }
             promptText.setString(prompt);
         }
     }
@@ -156,7 +178,6 @@ private:
         if (!gameOver) {
             gameOver = true;
             double accuracy = correct / (incorrect + correct);
-            std::cout << std::fixed << std::setprecision(2) << "Accuracy: " << accuracy * 100;
             incorrect = 0;
             correct = 0;
             wpmCalculation = (characterCount / 5) / (globalClock.getElapsedTime().asSeconds() / 60);
@@ -193,7 +214,7 @@ public:
         promptText.setCharacterSize(24);
         promptText.setFillColor(sf::Color::White);
         promptText.setStyle(sf::Text::Bold);
-        promptText.setPosition({360, 250});
+        promptText.setPosition({310, 250});
 
         globalTimerText.setPosition({800, 380});
         globalTimerText.setFillColor(sf::Color::White);
