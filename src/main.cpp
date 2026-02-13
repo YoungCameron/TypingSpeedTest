@@ -4,6 +4,7 @@
 #include <SFML/System.hpp>
 #include <vector>
 #include <fstream>
+#include "GameMenu.h"
 
 class Game {
 private:
@@ -47,12 +48,12 @@ private:
             if (event->is<sf::Event::Closed>()) {
                 window.close();
             }
-            if (const auto *textEntered = event->getIf<sf::Event::TextEntered>()) {
+            if (const auto* textEntered = event->getIf<sf::Event::TextEntered>()) {
                 characterCount++;
                 if (textEntered->unicode != '\b') {
                     pInput += textEntered->unicode;
                 }
-            } else if (const auto *keyPressed = event->getIf<sf::Event::KeyPressed>()) {
+            } else if (const auto* keyPressed = event->getIf<sf::Event::KeyPressed>()) {
                 if (keyPressed->scancode == sf::Keyboard::Scancode::Backspace) {
                     if (!pInput.isEmpty()) {
                         pInput.erase(pInput.getSize() - 1);
@@ -60,13 +61,10 @@ private:
                 }
             }
             if (gameOver) { // TODO: Implement this if statement correctly
-                if (event->getIf<sf::Event::KeyPressed>()) {
-                    resetClocks();
-                    newChallenge = true;
-                    pausePromptTimer = false;
-                    beginGlobal = true;
-                    gameStart = true;
-                    gameOver = false;
+                if (const auto* keyPressed = event->getIf<sf::Event::KeyPressed>()) {
+                    if (keyPressed -> scancode == sf::Keyboard::Scancode::Enter) {
+
+                    }
                 }
             }
         }
