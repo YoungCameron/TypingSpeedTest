@@ -14,10 +14,8 @@ FetchContent_MakeAvailable(SFML)
 
 add_executable(main src/main.cpp
         src/GameMenu.cpp
-        src/GameMenu.h
-        src/GameMenu.h
-        src/main.h)
-target_compile_features(main PRIVATE cxx_std_17)
+        src/GameMenu.h)
+target_compile_features(main PRIVATE cxx_std_20)
 target_link_libraries(main PRIVATE SFML::Graphics)
 
 set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT main)

@@ -4,6 +4,7 @@
 
 #ifndef CMAKESFMLPROJECT_GAMEMENU_H
 #define CMAKESFMLPROJECT_GAMEMENU_H
+#pragma once
 
 #include <iostream>
 #include <SFML/Window.hpp>
@@ -11,6 +12,10 @@
 #include <SFML/System.hpp>
 
 class GameMenu {
+
+public:
+    void show();
+    void handleSelection();
 };
 
 

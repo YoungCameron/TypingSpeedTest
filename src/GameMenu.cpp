@@ -3,3 +3,11 @@
 //
 
 #include "GameMenu.h"
+
+void GameMenu::show() {
+
+}
+
+void GameMenu::handleSelection() {
+
+}
