@@ -5,13 +5,12 @@
 #include <vector>
 #include <fstream>
 #include <format>
-#include "GameMenu.h"
 
-enum GameState { WAITING, PLAYING, RESULTS };
+enum GameState { WAITING, PLAYING, RESULTS, MAINMENU, OPTIONS, STATS };
 
 class Game {
 private:
-    GameState state = WAITING;
+    GameState state = MAINMENU;
     sf::RenderWindow window;
     sf::RectangleShape backgroundRectangle;
     sf::Font font;
@@ -19,7 +18,10 @@ private:
     sf::Text globalTimerText;
     sf::Text accuracyText;
     sf::Text wpmText;
-    sf::String pInput;
+    sf::Text play;
+    sf::Text options;
+    sf::Text stats;
+    sf::String promptInput;
     sf::Clock promptClock;
     sf::Clock globalClock;
     std::string prompt = "The quick brown fox jumps over the lazy dog";
@@ -29,16 +31,16 @@ private:
     std::fstream input;
     bool newChallenge = true;
     bool pausePromptTimer = false;
-    bool beginGlobal = true;
+    bool beginGlobalClock = true;
     std::vector<float> timeStorage;
     std::vector<std::string> promptStorage;
     int promptFileLine = 1;
     int textPosition = 0; // For accuracy
     double characterCount = 0; // For WPM
-    static double correct;
-    static double incorrect;
-    double wpmCalculation;
-    double accuracy;
+    double correct = 0;
+    double incorrect = 0;
+    double wpmCalculation = 0;
+    double accuracy = 0;
     float currentGlobalTime;
 
     // Detect input and handle accordingly
@@ -52,7 +54,7 @@ private:
                 if (const auto *textEntered = event->getIf<sf::Event::TextEntered>()) {
                     characterCount++;
                     if (textEntered->unicode != '\b' && textEntered->unicode != '\r') {
-                        pInput += textEntered->unicode;
+                        promptInput += textEntered->unicode;
                         if (textEntered->unicode == promptText.getString()[textPosition]) {
                             correct++;
                         } else {
@@ -62,9 +64,9 @@ private:
                     }
                 } else if (const auto *keyPressed = event->getIf<sf::Event::KeyPressed>()) {
                     if (keyPressed->scancode == sf::Keyboard::Scancode::Backspace) {
-                        if (!pInput.isEmpty()) {
+                        if (!promptInput.isEmpty()) {
                             textPosition--;
-                            pInput.erase(pInput.getSize() - 1);
+                            promptInput.erase(promptInput.getSize() - 1);
                         }
                     }
                 }
@@ -83,37 +85,61 @@ private:
             timer();
         }
         cycleChallenge();
-        globalTimerText.setString(std::format("{:.2f}",currentGlobalTime));
-
+        globalTimerText.setString(std::format("{:.2f}", currentGlobalTime));
     }
 
     // Render initial window and text
     void render() {
         window.clear(sf::Color(56, 68, 79, 255));
-        window.draw(backgroundRectangle);
-        window.draw(promptText);
-        window.draw(globalTimerText);
-        window.draw(accuracyText);
-        window.draw(wpmText);
+        if (state == MAINMENU) {
+            play.setCharacterSize(17);
+            play.setPosition({500,275});
+            play.setStyle(sf::Text::Bold);
+            play.setFillColor(sf::Color::White);
+            play.setString("Play");
 
-        backgroundRectangle.setFillColor(sf::Color(101, 105, 110, 125));
-        backgroundRectangle.setSize({700, 250});
-        backgroundRectangle.setPosition({240, 200});
+            stats.setCharacterSize(17);
+            stats.setPosition({500,300});
+            stats.setStyle(sf::Text::Bold);
+            stats.setFillColor(sf::Color::White);
+            stats.setString("Stats");
 
-        for (int i = 0; i < pInput.getSize(); i++) {
-            sf::Text charText(font);
-            charText.setString(pInput[i]);
-            charText.setCharacterSize(24);
-            charText.setStyle(sf::Text::Bold);
-            charText.setPosition(promptText.findCharacterPos(i));
+            options.setCharacterSize(17);
+            options.setPosition({500,325});
+            options.setStyle(sf::Text::Bold);
+            options.setFillColor(sf::Color::White);
+            options.setString("Options");
 
-            if (pInput[i] == promptText.getString()[i]) {
-                charText.setFillColor(sf::Color::Green);
-            } else {
-                charText.setFillColor(sf::Color::Red);
+            window.draw(play);
+            window.draw(options);
+            window.draw(stats);
+        }
+        if (state == WAITING || state == PLAYING || state == RESULTS) {
+            window.draw(promptText);
+            window.draw(globalTimerText);
+            window.draw(accuracyText);
+            window.draw(wpmText);
+
+            backgroundRectangle.setFillColor(sf::Color(101, 105, 110, 125));
+            backgroundRectangle.setSize({700, 250});
+            backgroundRectangle.setPosition({240, 200});
+            window.draw(backgroundRectangle);
+
+            for (int i = 0; i < promptInput.getSize(); i++) {
+                sf::Text charText(font);
+                charText.setString(promptInput[i]);
+                charText.setCharacterSize(24);
+                charText.setStyle(sf::Text::Bold);
+                charText.setPosition(promptText.findCharacterPos(i));
+
+                if (promptInput[i] == promptText.getString()[i]) {
+                    charText.setFillColor(sf::Color::Green);
+                } else {
+                    charText.setFillColor(sf::Color::Red);
+                }
+
+                window.draw(charText);
             }
-
-            window.draw(charText);
         }
 
         window.display();
@@ -122,14 +148,13 @@ private:
     // Clocks start by default, so we must pause and reset at start of game
     void resetClocks() {
         if (state == WAITING) {
-            state = PLAYING;
             globalClock.stop();
             globalClock.reset();
             promptClock.stop();
             promptClock.reset();
         }
-        if (pInput.getSize() > 0 && beginGlobal) {
-            beginGlobal = false;
+        if (promptInput.getSize() > 0 && beginGlobalClock) {
+            beginGlobalClock = false;
             globalClock.reset();
             globalClock.start();
         }
@@ -141,13 +166,14 @@ private:
         if (currentGlobalTime >= 30.00) {
             globalClock.stop();
             gameEnd();
-            pInput.clear();
+            promptInput.clear();
         }
-        if (pInput.getSize() > 0 && newChallenge) {
+        if (promptInput.getSize() > 0 && newChallenge) {
+            state = PLAYING;
             promptClock.reset();
             promptClock.start();
             newChallenge = false;
-        } else if (pInput.getSize() == promptText.getString().getSize()) {
+        } else if (promptInput.getSize() == promptText.getString().getSize()) {
             promptClock.stop();
             pausePromptTimer = true;
             float totalTime = promptClock.getElapsedTime().asSeconds();
@@ -157,11 +183,11 @@ private:
     }
 
     void cycleChallenge() {
-        if (!newChallenge && pInput.getSize() == promptText.getString().getSize()) {
+        if (!newChallenge && promptInput.getSize() == promptText.getString().getSize()) {
             newChallenge = true;
             pausePromptTimer = false;
             textPosition = 0;
-            pInput.clear();
+            promptInput.clear();
 
             prompt = promptStorage[promptFileLine];
             promptFileLine++;
@@ -183,7 +209,6 @@ private:
 
     // At the end of the game, change game state and calculate/display Accuracy and WPM on window
     void gameEnd() {
-
         if (state == PLAYING) {
             state = RESULTS;
 
@@ -193,7 +218,7 @@ private:
             wpmString = std::format("WPM: {:.0f}", wpmCalculation);
             wpmText.setString(wpmString);
 
-            accuracyString = std::format("Accuracy: {:.0f}%", accuracy*100);
+            accuracyString = std::format("Accuracy: {:.0f}%", accuracy * 100);
             accuracyText.setString(accuracyString);
         }
     }
@@ -212,13 +237,14 @@ private:
         textPosition = 0;
         newChallenge = true;
         pausePromptTimer = false;
-        beginGlobal = true;
+        beginGlobalClock = true;
         state = WAITING;
     }
 
 public:
     Game() : window(sf::VideoMode({1200, 700}), "Typing Speed Test", sf::Style::Close, sf::State::Windowed),
-             promptText(font), globalTimerText(font), accuracyText(font), wpmText(font), wpmCalculation(), currentGlobalTime() {
+             promptText(font), globalTimerText(font), accuracyText(font), wpmText(font), play(font), options(font), stats(font),
+             currentGlobalTime() {
         if (!font.openFromFile("SNPro.ttf")) {
             std::cerr << "Failed to load font!" << std::endl;
             return;
@@ -266,9 +292,6 @@ public:
         }
     }
 };
-
-double Game::correct = 0;
-double Game::incorrect = 0;
 
 int main() {
     Game game;
