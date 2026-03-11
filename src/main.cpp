@@ -7,10 +7,12 @@
 #include <format>
 
 enum GameState { WAITING, PLAYING, RESULTS, MAINMENU, OPTIONS, STATS };
+enum SelectionMenu { PLAY, SETTINGS, STAT };
 
 class Game {
 private:
     GameState state = MAINMENU;
+    SelectionMenu selectionMenu = PLAY;
     sf::RenderWindow window;
     sf::RectangleShape backgroundRectangle;
     sf::Font font;
@@ -50,6 +52,40 @@ private:
             if (event->is<sf::Event::Closed>()) {
                 window.close();
             }
+            if (state == MAINMENU) {
+                if (const auto *keyPressed = event->getIf<sf::Event::KeyPressed>()) {
+                    if (keyPressed->scancode == sf::Keyboard::Scan::Enter) {
+                        if (selectionMenu == PLAY) {
+                            state = WAITING;
+                        }
+                        if (selectionMenu == SETTINGS) {
+                            // TODO
+                        }
+                        if (selectionMenu == STAT) {
+                            // TODO
+                        }
+                    }
+                    if (keyPressed->scancode == sf::Keyboard::Scan::Down) {
+                        if (selectionMenu == PLAY) {
+                            selectionMenu = STAT;
+                        } else if (selectionMenu == STAT) {
+                            selectionMenu = SETTINGS;
+                        } else {
+                            selectionMenu = PLAY;
+                        }
+                    }
+                    if (keyPressed->scancode == sf::Keyboard::Scan::Up) {
+                        if (selectionMenu == PLAY) {
+                            selectionMenu = SETTINGS;
+                        } else if (selectionMenu == SETTINGS) {
+                            selectionMenu = STAT;
+                        } else {
+                            selectionMenu = PLAY;
+                        }
+                    }
+                }
+
+            }
             if (state == WAITING || state == PLAYING) {
                 if (const auto *textEntered = event->getIf<sf::Event::TextEntered>()) {
                     characterCount++;
@@ -62,14 +98,20 @@ private:
                         }
                         textPosition++;
                     }
-                } else if (const auto *keyPressed = event->getIf<sf::Event::KeyPressed>()) {
+                }
+                if (const auto *keyPressed = event->getIf<sf::Event::KeyPressed>()) {
                     if (keyPressed->scancode == sf::Keyboard::Scancode::Backspace) {
                         if (!promptInput.isEmpty()) {
                             textPosition--;
                             promptInput.erase(promptInput.getSize() - 1);
                         }
                     }
+                    if (keyPressed->scancode == sf::Keyboard::Scancode::Escape) { // TODO: Implement or fix
+                        state = MAINMENU;
+                        resetGame();
+                    }
                 }
+
             }
             // Reset the game if the user hits enter during RESULTS state
             if (state == RESULTS) {
@@ -93,22 +135,32 @@ private:
         window.clear(sf::Color(56, 68, 79, 255));
         if (state == MAINMENU) {
             play.setCharacterSize(17);
-            play.setPosition({500,275});
+            play.setPosition({500, 275});
             play.setStyle(sf::Text::Bold);
             play.setFillColor(sf::Color::White);
             play.setString("Play");
 
             stats.setCharacterSize(17);
-            stats.setPosition({500,300});
+            stats.setPosition({500, 300});
             stats.setStyle(sf::Text::Bold);
             stats.setFillColor(sf::Color::White);
             stats.setString("Stats");
 
             options.setCharacterSize(17);
-            options.setPosition({500,325});
+            options.setPosition({500, 325});
             options.setStyle(sf::Text::Bold);
             options.setFillColor(sf::Color::White);
             options.setString("Options");
+
+            if (selectionMenu == PLAY) {
+                play.setFillColor(sf::Color::Green);
+            }
+            if (selectionMenu == STAT) {
+                stats.setFillColor(sf::Color::Green);
+            }
+            if (selectionMenu == SETTINGS) {
+                options.setFillColor(sf::Color::Green);
+            }
 
             window.draw(play);
             window.draw(options);
@@ -243,7 +295,8 @@ private:
 
 public:
     Game() : window(sf::VideoMode({1200, 700}), "Typing Speed Test", sf::Style::Close, sf::State::Windowed),
-             promptText(font), globalTimerText(font), accuracyText(font), wpmText(font), play(font), options(font), stats(font),
+             promptText(font), globalTimerText(font), accuracyText(font), wpmText(font), play(font), options(font),
+             stats(font),
              currentGlobalTime() {
         if (!font.openFromFile("SNPro.ttf")) {
             std::cerr << "Failed to load font!" << std::endl;
