@@ -6,13 +6,15 @@
 #include <fstream>
 #include <format>
 
-enum GameState { WAITING, PLAYING, RESULTS, MAINMENU, OPTIONS, STATS };
+enum GameState { WAITING, PLAYING, RESULTS, MAINMENU, OPTIONS, STATS, PHRASEMENU };
 enum SelectionMenu { PLAY, SETTINGS, STAT };
+enum OptionsMenu { setPlayTime, setFPS, setPhrases };
 
 class Game {
 private:
     GameState state = MAINMENU;
     SelectionMenu selectionMenu = PLAY;
+    OptionsMenu optionsMenu = setPlayTime;
     sf::RenderWindow window;
     sf::RectangleShape backgroundRectangle;
     sf::Font font;
@@ -20,9 +22,11 @@ private:
     sf::Text globalTimerText;
     sf::Text accuracyText;
     sf::Text wpmText;
-    sf::Text play;
-    sf::Text options;
-    sf::Text stats;
+    // menuOption handles all menu options
+    sf::Text menuOption1;
+    sf::Text menuOption2;
+    sf::Text menuOption3;
+    sf::Text phraseMenuNumber;
     sf::String promptInput;
     sf::Clock promptClock;
     sf::Clock globalClock;
@@ -30,6 +34,7 @@ private:
     std::string accuracyString;
     std::string wpmString;
     std::string promptLine;
+    int phrasePageNumber = 1;
     std::fstream input;
     bool newChallenge = true;
     bool pausePromptTimer = false;
@@ -38,12 +43,14 @@ private:
     std::vector<std::string> promptStorage;
     int promptFileLine = 1;
     int textPosition = 0; // For accuracy
-    double characterCount = 0; // For WPM
-    double correct = 0;
-    double incorrect = 0;
+    int correct = 0;
+    int incorrect = 0;
+    int characterCount = 0; // For WPM
+    int FPS = 60;
     double wpmCalculation = 0;
     double accuracy = 0;
     float currentGlobalTime;
+    float playTime = 15.0;
 
     // Detect input and handle accordingly
     void handleInput() {
@@ -58,11 +65,11 @@ private:
                         if (selectionMenu == PLAY) {
                             state = WAITING;
                         }
-                        if (selectionMenu == SETTINGS) {
-                            // TODO
-                        }
                         if (selectionMenu == STAT) {
                             // TODO
+                        }
+                        if (selectionMenu == SETTINGS) {
+                            state = OPTIONS;
                         }
                     }
                     if (keyPressed->scancode == sf::Keyboard::Scan::Down) {
@@ -84,9 +91,63 @@ private:
                         }
                     }
                 }
-
-            }
-            if (state == WAITING || state == PLAYING) {
+            } else if (state == OPTIONS) {
+                if (const auto *keyPressed = event->getIf<sf::Event::KeyPressed>()) {
+                    if (keyPressed->scancode == sf::Keyboard::Scan::Enter) {
+                        if (optionsMenu == setPlayTime) {
+                            switch (static_cast<int>(playTime)) {
+                                case 15:
+                                    playTime = 30;
+                                    break;
+                                case 30:
+                                    playTime = 60;
+                                    break;
+                                case 60:
+                                    playTime = 90;
+                                    break;
+                                default:
+                                    playTime = 15;
+                            }
+                            menuOption1.setString("Play Time " + std::to_string(static_cast<int>(playTime)));
+                        }
+                        if (optionsMenu == setFPS) {
+                            switch (FPS) {
+                                case 60:
+                                    FPS = 120;
+                                    break;
+                                default:
+                                    FPS = 60;
+                            }
+                            window.setFramerateLimit(FPS);
+                            menuOption2.setString("FPS " + std::to_string(FPS));
+                        }
+                        if (optionsMenu == setPhrases) {
+                            state = PHRASEMENU; // TODO: Implement a phrases edit menu
+                        }
+                    }
+                    if (keyPressed->scancode == sf::Keyboard::Scan::Escape) {
+                        state = MAINMENU;
+                    }
+                    if (keyPressed->scancode == sf::Keyboard::Scan::Down) {
+                        if (optionsMenu == setPlayTime) {
+                            optionsMenu = setFPS;
+                        } else if (optionsMenu == setFPS) {
+                            optionsMenu = setPhrases;
+                        } else {
+                            optionsMenu = setPlayTime;
+                        }
+                    }
+                    if (keyPressed->scancode == sf::Keyboard::Scan::Up) {
+                        if (optionsMenu == setPlayTime) {
+                            optionsMenu = setPhrases;
+                        } else if (optionsMenu == setPhrases) {
+                            optionsMenu = setFPS;
+                        } else {
+                            optionsMenu = setPlayTime;
+                        }
+                    }
+                }
+            } else if (state == WAITING || state == PLAYING) {
                 if (const auto *textEntered = event->getIf<sf::Event::TextEntered>()) {
                     characterCount++;
                     if (textEntered->unicode != '\b' && textEntered->unicode != '\r') {
@@ -106,12 +167,30 @@ private:
                             promptInput.erase(promptInput.getSize() - 1);
                         }
                     }
-                    if (keyPressed->scancode == sf::Keyboard::Scancode::Escape) { // TODO: Implement or fix
-                        state = MAINMENU;
+                    if (keyPressed->scancode == sf::Keyboard::Scancode::Escape) {
                         resetGame();
+                        state = MAINMENU;
                     }
                 }
 
+            }
+            if (state == PHRASEMENU) {
+                if (const auto *keyPressed = event->getIf<sf::Event::KeyPressed>()) {
+                    if (keyPressed->scancode == sf::Keyboard::Scancode::Right) {
+                        if (phrasePageNumber != promptStorage.size()) {
+                            phrasePageNumber++;
+                        } else {
+                            phrasePageNumber = 1;
+                        }
+                    }
+                    if (keyPressed->scancode == sf::Keyboard::Scancode::Left) {
+                        if (phrasePageNumber != 1) {
+                            phrasePageNumber--;
+                        } else {
+                            phrasePageNumber = static_cast<int>(promptStorage.size());
+                        }
+                    }
+                }
             }
             // Reset the game if the user hits enter during RESULTS state
             if (state == RESULTS) {
@@ -134,37 +213,71 @@ private:
     void render() {
         window.clear(sf::Color(56, 68, 79, 255));
         if (state == MAINMENU) {
-            play.setCharacterSize(17);
-            play.setPosition({500, 275});
-            play.setStyle(sf::Text::Bold);
-            play.setFillColor(sf::Color::White);
-            play.setString("Play");
+            menuOption1.setCharacterSize(17);
+            menuOption1.setPosition({500, 275});
+            menuOption1.setStyle(sf::Text::Bold);
+            menuOption1.setFillColor(sf::Color::White);
+            menuOption1.setString("Play");
 
-            stats.setCharacterSize(17);
-            stats.setPosition({500, 300});
-            stats.setStyle(sf::Text::Bold);
-            stats.setFillColor(sf::Color::White);
-            stats.setString("Stats");
+            menuOption3.setCharacterSize(17);
+            menuOption3.setPosition({500, 300});
+            menuOption3.setStyle(sf::Text::Bold);
+            menuOption3.setFillColor(sf::Color::White);
+            menuOption3.setString("Stats");
 
-            options.setCharacterSize(17);
-            options.setPosition({500, 325});
-            options.setStyle(sf::Text::Bold);
-            options.setFillColor(sf::Color::White);
-            options.setString("Options");
+            menuOption2.setCharacterSize(17);
+            menuOption2.setPosition({500, 325});
+            menuOption2.setStyle(sf::Text::Bold);
+            menuOption2.setFillColor(sf::Color::White);
+            menuOption2.setString("Options");
 
             if (selectionMenu == PLAY) {
-                play.setFillColor(sf::Color::Green);
+                menuOption1.setFillColor(sf::Color::Green);
             }
             if (selectionMenu == STAT) {
-                stats.setFillColor(sf::Color::Green);
+                menuOption3.setFillColor(sf::Color::Green);
             }
             if (selectionMenu == SETTINGS) {
-                options.setFillColor(sf::Color::Green);
+                menuOption2.setFillColor(sf::Color::Green);
             }
 
-            window.draw(play);
-            window.draw(options);
-            window.draw(stats);
+            window.draw(menuOption1);
+            window.draw(menuOption2);
+            window.draw(menuOption3);
+        }
+        if (state == OPTIONS) {
+            menuOption1.setCharacterSize(17);
+            menuOption1.setPosition({500, 275});
+            menuOption1.setStyle(sf::Text::Bold);
+            menuOption1.setFillColor(sf::Color::White);
+            menuOption1.setString("Play Time " + std::to_string(static_cast<int>(playTime)));
+
+
+            menuOption2.setCharacterSize(17);
+            menuOption2.setPosition({500, 300});
+            menuOption2.setStyle(sf::Text::Bold);
+            menuOption2.setFillColor(sf::Color::White);
+            menuOption2.setString("FPS " + std::to_string(FPS));
+
+            menuOption3.setCharacterSize(17);
+            menuOption3.setPosition({500, 325});
+            menuOption3.setStyle(sf::Text::Bold);
+            menuOption3.setFillColor(sf::Color::White);
+            menuOption3.setString("Phrases");
+
+            if (optionsMenu == setPlayTime) {
+                menuOption1.setFillColor(sf::Color::Green);
+            }
+            if (optionsMenu == setFPS) {
+                menuOption2.setFillColor(sf::Color::Green);
+            }
+            if (optionsMenu == setPhrases) {
+                menuOption3.setFillColor(sf::Color::Green);
+            }
+
+            window.draw(menuOption1);
+            window.draw(menuOption2);
+            window.draw(menuOption3);
         }
         if (state == WAITING || state == PLAYING || state == RESULTS) {
             window.draw(promptText);
@@ -192,6 +305,17 @@ private:
 
                 window.draw(charText);
             }
+        } if (state == PHRASEMENU) {
+            backgroundRectangle.setFillColor(sf::Color(101, 105, 110, 125));
+            backgroundRectangle.setSize({700, 250});
+            backgroundRectangle.setPosition({240, 200});
+            window.draw(backgroundRectangle);
+
+            phraseMenuNumber.setPosition({580, 225});
+            phraseMenuNumber.setFillColor(sf::Color::White);
+            phraseMenuNumber.setCharacterSize(14);
+            phraseMenuNumber.setString(std::to_string(phrasePageNumber) + "/" + std::to_string(static_cast<int>(promptStorage.size())));
+            window.draw(phraseMenuNumber);
         }
 
         window.display();
@@ -215,7 +339,7 @@ private:
     // Keep track of start -> finish for accuracy and speed
     void timer() {
         resetClocks();
-        if (currentGlobalTime >= 30.00) {
+        if (currentGlobalTime >= playTime) {
             globalClock.stop();
             gameEnd();
             promptInput.clear();
@@ -295,9 +419,8 @@ private:
 
 public:
     Game() : window(sf::VideoMode({1200, 700}), "Typing Speed Test", sf::Style::Close, sf::State::Windowed),
-             promptText(font), globalTimerText(font), accuracyText(font), wpmText(font), play(font), options(font),
-             stats(font),
-             currentGlobalTime() {
+             promptText(font), globalTimerText(font), accuracyText(font), wpmText(font), menuOption1(font), menuOption2(font),
+             menuOption3(font), phraseMenuNumber(font), currentGlobalTime() {
         if (!font.openFromFile("SNPro.ttf")) {
             std::cerr << "Failed to load font!" << std::endl;
             return;
@@ -306,7 +429,7 @@ public:
         sf::Image icon;
         icon.loadFromFile("STT.jpeg");
         window.setIcon(icon.getSize(), icon.getPixelsPtr());
-        window.setFramerateLimit(60);
+        window.setFramerateLimit(FPS);
 
         promptText.setFont(font);
         promptText.setString(prompt);
