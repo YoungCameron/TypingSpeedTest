@@ -1,7 +1,6 @@
 # TypingSpeedTest
 
 A desktop typing speed test application built with C++ and SFML 3. Features a state machine architecture, real-time WPM and accuracy tracking, configurable play time, and a phrase management system.
-
 ## Features
 
 - **Real-time feedback** — Characters highlight green/red as you type
