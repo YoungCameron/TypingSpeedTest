@@ -152,10 +152,12 @@ private:
                     characterCount++;
                     if (textEntered->unicode != '\b' && textEntered->unicode != '\r') {
                         promptInput += textEntered->unicode;
-                        if (textEntered->unicode == promptText.getString()[textPosition]) {
-                            correct++;
-                        } else {
-                            incorrect++;
+                        if (textPosition < promptText.getString().getSize()) {
+                            if (textEntered->unicode == promptText.getString()[textPosition]) {
+                                correct++;
+                            } else {
+                                incorrect++;
+                            }
                         }
                         textPosition++;
                     }
@@ -367,11 +369,14 @@ private:
 
             prompt = promptStorage[promptFileLine];
             promptFileLine++;
+            if (promptFileLine >= promptStorage.size()) {
+                promptFileLine = 0;
+            }
             if (prompt.size() > 44) {
                 int location = 44;
                 while (true) {
                     constexpr char space = ' ';
-                    if (prompt[location] != space) {
+                    if (prompt[location] != space && location < prompt.size() - 1) {
                         location++;
                     } else {
                         prompt.replace(location, 1, "\n");
@@ -388,8 +393,8 @@ private:
         if (state == PLAYING) {
             state = RESULTS;
 
-            accuracy = correct / (incorrect + correct);
-            wpmCalculation = (characterCount / 5) / (globalClock.getElapsedTime().asSeconds() / 60);
+            accuracy = static_cast<double>(correct) / (incorrect + correct);
+            wpmCalculation = (static_cast<float>(characterCount) / 5) / (globalClock.getElapsedTime().asSeconds() / 60);
 
             wpmString = std::format("WPM: {:.0f}", wpmCalculation);
             wpmText.setString(wpmString);
