@@ -30,3 +30,14 @@
 *.exe
 *.out
 *.app
+
+# Dependencies & toolchain
+SFML-3.0.2/
+mingw64/
+
+# Build artifacts
+cmake-build-debug/
+cmake-build-release/
+
+# IDE files
+.idea/
