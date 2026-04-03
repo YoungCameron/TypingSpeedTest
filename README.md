@@ -2,9 +2,9 @@
 
 A desktop typing speed test application built with C++ and SFML 3. Features a state machine architecture, real-time WPM and accuracy tracking, configurable play time, and a phrase management system.
 
-<img width="720" height="350" alt="Playing" src="https://github.com/user-attachments/assets/49c37fc3-9301-46fe-9032-4f2fd15ab440" />
-<img width="720" height="350" alt="MainMenu" src="https://github.com/user-attachments/assets/220567ae-3a49-494a-8b41-3556d56167a1" />
-<img width="720" height="350" alt="Results" src="https://github.com/user-attachments/assets/0f8a6a9b-347c-4d3e-b69f-2adc04e12bfc" />
+<img height="350" alt="Playing" src="https://github.com/user-attachments/assets/49c37fc3-9301-46fe-9032-4f2fd15ab440" />
+<img height="350" alt="MainMenu" src="https://github.com/user-attachments/assets/220567ae-3a49-494a-8b41-3556d56167a1" />
+<img height="350" alt="Results" src="https://github.com/user-attachments/assets/0f8a6a9b-347c-4d3e-b69f-2adc04e12bfc" />
 
 
 ## Features
